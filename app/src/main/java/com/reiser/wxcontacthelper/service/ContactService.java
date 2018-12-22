@@ -67,7 +67,7 @@ public class ContactService extends AccessibilityService {
             if (currentActivityName.contains(ACTIVITY_FTSMAIN)) {
                 findAllChilden(nodeInfo);
                 Log.d(TAG, "--------------------------------");
-                AccessibilityNodeInfo node2 = findAllChilden(nodeInfo, "android.widget.TextView", "查找手机/QQ号:18582312341");
+                AccessibilityNodeInfo node2 = findAllChilden(nodeInfo, "android.widget.TextView", "查找手机/QQ号:");
                 if (node2 != null) {
                     onClick(node2);
                     return;
@@ -75,7 +75,7 @@ public class ContactService extends AccessibilityService {
                 AccessibilityNodeInfo node = findAllChilden(nodeInfo, "android.widget.EditText", "搜索");
                 if (node != null) {
                     Bundle arg = new Bundle();
-                    arg.putString(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "18582312341");
+                    arg.putString(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "");
                     node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arg);
                 }
 
@@ -100,7 +100,7 @@ public class ContactService extends AccessibilityService {
                 AccessibilityNodeInfo node4 = findAllChilden(nodeInfo, "android.widget.EditText", "我是许则则");
                 if (node4 != null) {
                     Bundle arg = new Bundle();
-                    arg.putString(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "我是你的专属销售");
+                    arg.putString(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "我是你的优乐美");
                     node4.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arg);
                 }
                 AccessibilityNodeInfo node5 = findAllChilden(nodeInfo, "android.widget.TextView", "发送");
