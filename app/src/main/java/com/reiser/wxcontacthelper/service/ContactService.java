@@ -14,6 +14,10 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import com.reiser.wxcontacthelper.Setting;
+
+import java.util.List;
+
 /**
  * Created by reiserx on 2018/12/21.
  * desc :
@@ -43,10 +47,26 @@ public class ContactService extends AccessibilityService {
 
     private static int tabcount = -1;
     private static StringBuilder sb;
+    private Setting mSetting;
 
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        mSetting = Setting.newInstance();
+    }
+
+    @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+
+        if (mSetting == null || mSetting.getPhones() == null || !mSetting.isStart()) {
+            return;
+        }
+        String phone = mSetting.getPhone();
+
+        if (TextUtils.isEmpty(phone)) {
+            return;
+        }
         setCurrentActivityName(event);
         AccessibilityNodeInfo nodeInfo = getRootInActiveWindow();
 
@@ -67,7 +87,7 @@ public class ContactService extends AccessibilityService {
             if (currentActivityName.contains(ACTIVITY_FTSMAIN)) {
                 findAllChilden(nodeInfo);
                 Log.d(TAG, "--------------------------------");
-                AccessibilityNodeInfo node2 = findAllChilden(nodeInfo, "android.widget.TextView", "查找手机/QQ号:");
+                AccessibilityNodeInfo node2 = findAllChilden(nodeInfo, "android.widget.TextView", "查找手机/QQ号:" + phone);
                 if (node2 != null) {
                     onClick(node2);
                     return;
@@ -79,15 +99,12 @@ public class ContactService extends AccessibilityService {
                     node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arg);
                 }
 
-
+                List<AccessibilityNodeInfo> node3 = nodeInfo.findAccessibilityNodeInfosByText("用户不存在");
+                if (node3 != null && node3.size() > 0) {
+                    getNewPhoneToAdd();
+                }
             }
-            if (currentActivityName.contains(ACTIVITY_FTSFRIEND)) {
 
-
-            }
-
-
-//
             if (currentActivityName.contains(ACTIVITY_CONTACT_INFO)) {
                 AccessibilityNodeInfo node3 = findAllChilden(nodeInfo, "android.widget.Button", "添加到通讯录");
                 if (node3 != null) {
@@ -97,16 +114,24 @@ public class ContactService extends AccessibilityService {
 
 
             if (currentActivityName.contains(ACTIVITY_SAY_HI)) {
-                AccessibilityNodeInfo node4 = findAllChilden(nodeInfo, "android.widget.EditText", "我是许则则");
+                AccessibilityNodeInfo node4 = findAllChilden(nodeInfo, "android.widget.EditText", null);
                 if (node4 != null) {
                     Bundle arg = new Bundle();
-                    arg.putString(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "我是你的优乐美");
+                    arg.putString(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, mSetting.getDes());
                     node4.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arg);
                 }
                 AccessibilityNodeInfo node5 = findAllChilden(nodeInfo, "android.widget.TextView", "发送");
                 if (node5 != null) {
                     onClick(node5);
-                    mNeedAddPerson = false;
+
+
+                    new android.os.Handler().postDelayed(
+                            new Runnable() {
+                                public void run() {
+                                    getNewPhoneToAdd();
+                                }
+                            },
+                            1000);
 //                    performGlobalAction(GLOBAL_ACTION_BACK);
                 }
             }
@@ -116,6 +141,13 @@ public class ContactService extends AccessibilityService {
             e.printStackTrace();
         }
 
+    }
+
+    private void getNewPhoneToAdd() {
+        mNeedAddPerson = false;
+        mSetting.next();
+        performGlobalAction(GLOBAL_ACTION_BACK);
+        performGlobalAction(GLOBAL_ACTION_BACK);
     }
 
 
@@ -200,6 +232,9 @@ public class ContactService extends AccessibilityService {
     private AccessibilityNodeInfo findAllChilden(AccessibilityNodeInfo nodeInfo, String type, String text) {
         if (nodeInfo == null) {
             return null;
+        }
+        if (TextUtils.isEmpty(text) && TextUtils.equals(nodeInfo.getClassName(), type)) {
+            return nodeInfo;
         }
         if (TextUtils.equals(nodeInfo.getClassName(), type) && TextUtils.equals(nodeInfo.getText(), text)) {
             return nodeInfo;
