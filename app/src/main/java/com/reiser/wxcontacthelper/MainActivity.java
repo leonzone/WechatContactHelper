@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
 
         TextInputEditText editText = findViewById(R.id.et_des);
         Setting.newInstance().setDes(editText.getText().toString());
-        Setting.newInstance().setStart(true);
+        Setting.newInstance().adding=true;
 
 
         Intent intent = new Intent();
@@ -52,6 +52,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Setting.newInstance().setStart(false);
+        Setting.newInstance().adding=false;
     }
 }

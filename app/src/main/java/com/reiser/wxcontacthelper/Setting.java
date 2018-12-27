@@ -7,10 +7,16 @@ package com.reiser.wxcontacthelper;
 public class Setting {
 
     private int currentIndex = -1;
-    private String currentPhone = "";
     private int length;
 
     private static volatile Setting instance = null;
+
+
+    public boolean iWantGoHome = false;
+
+    public boolean adding = false;
+
+    public String currentPhone = "";
 
     private Setting() {
     }
@@ -29,7 +35,6 @@ public class Setting {
 
     private String[] phones;
 
-    private boolean start;
 
     private String des;
 
@@ -41,21 +46,10 @@ public class Setting {
         this.phones = phones;
         if (phones != null && phones.length > 0) {
             length = phones.length;
-            currentPhone = phones[phones.length - 1];
+            currentPhone = phones[0];
         }
     }
 
-    public boolean isStart() {
-        return start;
-    }
-
-    public void setStart(boolean start) {
-        this.start = start;
-    }
-
-    public String getPhone() {
-        return currentPhone;
-    }
 
     public String getDes() {
         return des;
@@ -65,13 +59,15 @@ public class Setting {
         this.des = des;
     }
 
-    public void next() {
+    public String nextPhone() {
         currentIndex += 1;
         if (currentIndex >= length) {
-            start = false;
+            adding = false;
             currentPhone = "";
         } else {
             currentPhone = phones[currentIndex];
         }
+
+        return currentPhone;
     }
 }

@@ -42,13 +42,14 @@ public class ContactService extends AccessibilityService {
     private static final String ACTIVITY_SAY_HI = "SayHiWithSnsPermissionUI";
 
     private String currentActivityName;
-    boolean mNeedAddPerson = false;
 
 
     private static int tabcount = -1;
     private static StringBuilder sb;
     private Setting mSetting;
 
+    private AccessibilityNodeInfo rootNodeInfo;
+    private String phone;
 
     @Override
     public void onCreate() {
@@ -59,95 +60,137 @@ public class ContactService extends AccessibilityService {
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
 
-        if (mSetting == null || mSetting.getPhones() == null || !mSetting.isStart()) {
-            return;
-        }
-        String phone = mSetting.getPhone();
-
-        if (TextUtils.isEmpty(phone)) {
-            return;
-        }
-        setCurrentActivityName(event);
-        AccessibilityNodeInfo nodeInfo = getRootInActiveWindow();
-
         try {
-            if (currentActivityName.contains(ACTIVITY_LAUNCHER)) {
-                AccessibilityNodeInfo node = findAllChilden(nodeInfo, "android.widget.TextView", "搜索");
-                if (node != null) {
-                    onClick(node);
-                    mNeedAddPerson = true;
-                }
-            }
-
-            if (!mNeedAddPerson) {
+            if (mSetting == null || mSetting.getPhones() == null) {
                 return;
             }
-
-
-            if (currentActivityName.contains(ACTIVITY_FTSMAIN)) {
-                findAllChilden(nodeInfo);
-                Log.d(TAG, "--------------------------------");
-                AccessibilityNodeInfo node2 = findAllChilden(nodeInfo, "android.widget.TextView", "查找手机/QQ号:" + phone);
-                if (node2 != null) {
-                    onClick(node2);
-                    return;
-                }
-                AccessibilityNodeInfo node = findAllChilden(nodeInfo, "android.widget.EditText", "搜索");
-                if (node != null) {
-                    Bundle arg = new Bundle();
-                    arg.putString(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "");
-                    node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arg);
-                }
-
-                List<AccessibilityNodeInfo> node3 = nodeInfo.findAccessibilityNodeInfosByText("用户不存在");
-                if (node3 != null && node3.size() > 0) {
-                    getNewPhoneToAdd();
-                }
-            }
-
-            if (currentActivityName.contains(ACTIVITY_CONTACT_INFO)) {
-                AccessibilityNodeInfo node3 = findAllChilden(nodeInfo, "android.widget.Button", "添加到通讯录");
-                if (node3 != null) {
-                    onClick(node3);
-                }
-            }
-
-
-            if (currentActivityName.contains(ACTIVITY_SAY_HI)) {
-                AccessibilityNodeInfo node4 = findAllChilden(nodeInfo, "android.widget.EditText", null);
-                if (node4 != null) {
-                    Bundle arg = new Bundle();
-                    arg.putString(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, mSetting.getDes());
-                    node4.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arg);
-                }
-                AccessibilityNodeInfo node5 = findAllChilden(nodeInfo, "android.widget.TextView", "发送");
-                if (node5 != null) {
-                    onClick(node5);
-
-
-                    new android.os.Handler().postDelayed(
-                            new Runnable() {
-                                public void run() {
-                                    getNewPhoneToAdd();
-                                }
-                            },
-                            1000);
-//                    performGlobalAction(GLOBAL_ACTION_BACK);
-                }
-            }
-
-
+            watchChat(event);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
+
     }
 
-    private void getNewPhoneToAdd() {
-        mNeedAddPerson = false;
-        mSetting.next();
+    private void watchChat(AccessibilityEvent event) {
+        rootNodeInfo = getRootInActiveWindow();
+        if (rootNodeInfo == null) {
+            return;
+        }
+        setCurrentActivityName(event);
+
+        if (currentActivityName.contains(ACTIVITY_LAUNCHER)) {
+            phone = mSetting.currentPhone;
+            if (TextUtils.isEmpty(phone)) {
+                return;
+            }
+            inMainPage();
+            mSetting.adding = true;
+            mSetting.iWantGoHome = false;
+            return;
+        }
+
+        if (mSetting.iWantGoHome) {
+            if (!currentActivityName.contains(ACTIVITY_LAUNCHER)) {
+                performGlobalAction(GLOBAL_ACTION_BACK);
+                return;
+            }
+        }
+
+        if (!mSetting.adding) {
+            return;
+        }
+
+        if (currentActivityName.contains(ACTIVITY_FTSMAIN)) {
+            if (inSearchPage()) return;
+        }
+
+        if (currentActivityName.contains(ACTIVITY_CONTACT_INFO)) {
+            if (inInfoPage()) return;
+        }
+
+        if (currentActivityName.contains(ACTIVITY_SAY_HI)) {
+            inAddPage();
+        }
+
+
+    }
+
+    private void inAddPage() {
+        AccessibilityNodeInfo node4 = findAllChilden(rootNodeInfo, "android.widget.EditText", null);
+        if (node4 != null) {
+            Bundle arg = new Bundle();
+            arg.putString(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, mSetting.getDes());
+            node4.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arg);
+        }
+        AccessibilityNodeInfo node5 = findAllChilden(rootNodeInfo, "android.widget.TextView", "发送");
+        if (node5 != null) {
+            onClick(node5);
+
+
+            new android.os.Handler().postDelayed(
+                    new Runnable() {
+                        public void run() {
+                            resetStatusJumpMain();
+                        }
+                    },
+                    1000);
+//                    performGlobalAction(GLOBAL_ACTION_BACK);
+        }
+    }
+
+    private boolean inInfoPage() {
+        AccessibilityNodeInfo node3 = findAllChilden(rootNodeInfo, "android.widget.Button", "添加到通讯录");
+        if (node3 != null) {
+            onClick(node3);
+            return true;
+        }
+
+        AccessibilityNodeInfo node2 = findAllChilden(rootNodeInfo, "android.widget.Button", "发消息");
+        if (node2 != null) {
+            resetStatusJumpMain();
+        }
+        return false;
+    }
+
+    private boolean inSearchPage() {
+        printAllChilden(rootNodeInfo);
+        Log.d(TAG, "--------------------------------");
+        final AccessibilityNodeInfo node2 = findAllChilden(rootNodeInfo, "android.widget.TextView", "查找手机/QQ号:" + phone);
+        if (node2 != null) {
+            //点击为什么不生效？？
+            onClick(node2);
+            return true;
+        }
+        AccessibilityNodeInfo node = findAllChilden(rootNodeInfo, "android.widget.EditText", "搜索");
+        if (node != null) {
+            Bundle arg = new Bundle();
+            arg.putString(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, phone);
+            node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arg);
+        }
+
+        List<AccessibilityNodeInfo> node3 = rootNodeInfo.findAccessibilityNodeInfosByText("用户不存在");
+        if (node3 != null && node3.size() > 0) {
+            resetStatusJumpMain();
+        }
+        return false;
+    }
+
+    private void inMainPage() {
+        printAllChilden(rootNodeInfo);
+        AccessibilityNodeInfo node = findAllChilden(rootNodeInfo, "android.widget.TextView", "搜索");
+        boolean have = hasOneOfThoseNodes("搜索");
+        AccessibilityNodeInfo node2 = getTheLastNode("搜索");
+        if (node != null) {
+            onClick(node);
+        }
+    }
+
+    private void resetStatusJumpMain() {
         performGlobalAction(GLOBAL_ACTION_BACK);
-        performGlobalAction(GLOBAL_ACTION_BACK);
+        mSetting.adding = false;
+        phone = mSetting.nextPhone();
+//        performGlobalAction(GLOBAL_ACTION_BACK);
     }
 
 
@@ -255,7 +298,8 @@ public class ContactService extends AccessibilityService {
     }
 
 
-    private void findAllChilden(AccessibilityNodeInfo nodeInfo) {
+    //打印节点
+    private void printAllChilden(AccessibilityNodeInfo nodeInfo) {
         if (nodeInfo == null) {
             return;
         }
@@ -265,52 +309,44 @@ public class ContactService extends AccessibilityService {
             Log.d(TAG, "find nodeInfo: no text getContentDescription is" + nodeInfo.getContentDescription() + " >>>>>> " + nodeInfo.getClassName());
         }
         for (int i = 0; i < nodeInfo.getChildCount(); i++) {
-            findAllChilden(nodeInfo.getChild(i));
+            printAllChilden(nodeInfo.getChild(i));
         }
     }
 
-    private AccessibilityNodeInfo findInputerButton(AccessibilityNodeInfo node) {
-        if (node == null)
-            return null;
+    private boolean hasOneOfThoseNodes(String... texts) {
+        List<AccessibilityNodeInfo> nodes;
+        for (String text : texts) {
+            if (text == null) continue;
 
-        //非layout元素
-        if (node.getChildCount() == 0) {
-            if ("android.widget.Button".equals(node.getClassName()))
-                return node;
-            else
-                return null;
-        }
+            nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText(text);
 
-        //layout元素，遍历找button
-        AccessibilityNodeInfo button;
-        for (int i = 0; i < node.getChildCount(); i++) {
-            button = findInputerButton(node.getChild(i));
-            if (button != null)
-                return button;
+            if (nodes != null && !nodes.isEmpty()) return true;
         }
-        return null;
+        return false;
     }
 
-    private AccessibilityNodeInfo findOpenButton(AccessibilityNodeInfo node) {
-        if (node == null)
-            return null;
+    private AccessibilityNodeInfo getTheLastNode(String... texts) {
+        int bottom = 0;
+        AccessibilityNodeInfo lastNode = null, tempNode;
+        List<AccessibilityNodeInfo> nodes;
 
-        //非layout元素
-        if (node.getChildCount() == 0) {
-            if ("android.widget.Button".equals(node.getClassName()))
-                return node;
-            else
-                return null;
-        }
+        for (String text : texts) {
+            if (text == null) continue;
 
-        //layout元素，遍历找button
-        AccessibilityNodeInfo button;
-        for (int i = 0; i < node.getChildCount(); i++) {
-            button = findOpenButton(node.getChild(i));
-            if (button != null)
-                return button;
+            nodes = this.rootNodeInfo.findAccessibilityNodeInfosByText(text);
+
+            if (nodes != null && !nodes.isEmpty()) {
+                tempNode = nodes.get(nodes.size() - 1);
+                if (tempNode == null) return null;
+                Rect bounds = new Rect();
+                tempNode.getBoundsInScreen(bounds);
+                if (bounds.bottom > bottom) {
+                    bottom = bounds.bottom;
+                    lastNode = tempNode;
+                }
+            }
         }
-        return null;
+        return lastNode;
     }
 
     @Override

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="phone_array">
-        <item>110</item>
-        <item>112</item>
-        <item>119</item>
+        <!--<item>13608028060</item>-->
+        <item>13908070677</item>
+        <item>18382469996</item>
+        <item>13408467802</item>
     </string-array>
 </resources>

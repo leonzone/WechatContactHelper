@@ -45,6 +45,7 @@
             android:id="@+id/et_des"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:text="你好，我是你们的邻居在三圣乡做高性价比女装工作室，➕我就有礼物送哦"
             android:hint="备注" />
     </android.support.design.widget.TextInputLayout>
 
